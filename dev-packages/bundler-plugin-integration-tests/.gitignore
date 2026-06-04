@@ -1,1 +1,4 @@
 fixtures/*/out/**
+
+# Regenerated on every run by `pnpm install --force` in setup.mjs
+fixtures/*/pnpm-lock.yaml

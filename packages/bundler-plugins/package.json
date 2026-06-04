@@ -64,13 +64,15 @@
   },
   "scripts": {
     "prebuild": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
-    "build": "premove ./dist && run-p build:rollup build:types && run-s build:npm",
+    "build": "yarn prebuild && premove ./dist && run-p build:rollup build:types && run-s build:tarball",
+    "build:dev": "yarn prebuild && run-p build:rollup build:types",
+    "build:transpile": "yarn prebuild && yarn build:rollup",
     "build:watch": "run-p build:rollup:watch build:types:watch",
     "build:rollup": "rolldown --config rollup.config.mjs",
     "build:rollup:watch": "rolldown --config rollup.config.mjs --watch --no-watch.clearScreen",
     "build:types": "tsc --project types.tsconfig.json",
     "build:types:watch": "tsc --project types.tsconfig.json --watch --preserveWatchOutput",
-    "build:npm": "npm pack",
+    "build:tarball": "npm pack",
     "check:types": "run-p check:types:src check:types:test",
     "check:types:src": "tsc --project ./tsconfig.json --noEmit",
     "check:types:test": "tsc --project ./test/tsconfig.json --noEmit",
@@ -105,14 +107,13 @@
     "@babel/preset-react": "^7.23.3",
     "@sentry/core": "10.56.0",
     "@sentry/types": "10.56.0",
-    "@sentry-internal/dev-utils": "5.3.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^18.6.3",
     "@types/webpack": "npm:@types/webpack@^4",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
-    "vitest": "^4.0.0",
-    "webpack": "5.76.0"
+    "vitest": "^3.2.4",
+    "webpack": "^5.95.0"
   },
   "volta": {
     "extends": "../../package.json"
@@ -123,5 +124,23 @@
   "sideEffects": [
     "./sentry-release-injection-file.js",
     "./sentry-esbuild-debugid-injection-file.js"
-  ]
+  ],
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      },
+      "build:types": {
+        "dependsOn": [
+          "^build:types",
+          "build:transpile"
+        ],
+        "outputs": [
+          "{projectRoot}/dist/types"
+        ]
+      }
+    }
+  }
 }

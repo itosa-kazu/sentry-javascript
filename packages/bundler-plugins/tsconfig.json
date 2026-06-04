@@ -3,6 +3,9 @@
   "extends": "../../tsconfig.json",
   "include": ["./src/**/*.ts", "./package.json"],
   "compilerOptions": {
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    // The source uses `import.meta.url`, which TS only permits with an ES2020+
+    // module setting. The monorepo base config resolves `module` to `es6`.
+    "module": "es2020"
   }
 }

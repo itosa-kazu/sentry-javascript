@@ -30,37 +30,34 @@ export function test(url: string, callback: TestCallback) {
   // Detect CJS config files by test name suffix
   const configExt = testName.endsWith("-cjs") ? ".config.cjs" : ".config.ts";
 
-  // Rolldown requires Node 20+
-  if (NODE_MAJOR_VERSION < 20) {
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    vitestTest.skip(testName);
-  } else {
-    vitestTest(`rolldown > ${testName}`, (ctx) =>
-      callback({
-        outDir,
-        runBundler: (env) =>
-          runBundler(
-            `pnpm rolldown --config ${testName}${configExt}`,
-            {
-              cwd,
-              env: {
-                ...process.env,
-                ...env,
-              },
-            },
-            outDir
-          ),
-        readOutputFiles: () => readAllFiles(outDir),
-        runFileInNode: (file) => {
-          const fullPath = join(outDir, file);
-          return execSync(`node ${fullPath}`, {
+  // Rolldown requires Node 20+. Register the test under its real name either way
+  // and skip it on older Node, so the coverage gap is visible (reported as a
+  // skipped `rolldown > ${testName}`) rather than silently dropped.
+  vitestTest.skipIf(NODE_MAJOR_VERSION < 20)(`rolldown > ${testName}`, (ctx) =>
+    callback({
+      outDir,
+      runBundler: (env) =>
+        runBundler(
+          `pnpm rolldown --config ${testName}${configExt}`,
+          {
             cwd,
-            env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" },
-          }).toString();
-        },
-        createTempDir: () => createTempDir(),
-        ctx,
-      })
-    );
-  }
+            env: {
+              ...process.env,
+              ...env,
+            },
+          },
+          outDir
+        ),
+      readOutputFiles: () => readAllFiles(outDir),
+      runFileInNode: (file) => {
+        const fullPath = join(outDir, file);
+        return execSync(`node ${fullPath}`, {
+          cwd,
+          env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" },
+        }).toString();
+      },
+      createTempDir: () => createTempDir(),
+      ctx,
+    })
+  );
 }

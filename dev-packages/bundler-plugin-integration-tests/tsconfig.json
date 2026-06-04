@@ -8,7 +8,10 @@
   "exclude": ["./fixtures/vite*/**/*"],
   "compilerOptions": {
     "types": ["node"],
-    "module": "es2020",
+    // `bundler` resolution lets tsc resolve the `@sentry/bundler-plugins/*`
+    // subpath exports (their `types` conditions) that the fixtures import from.
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "lib": ["ES2021"]
   }
 }

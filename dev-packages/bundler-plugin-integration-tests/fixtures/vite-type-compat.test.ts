@@ -1,16 +1,21 @@
 import { describe, expect, it } from "vitest";
 import * as ts from "typescript";
-import { isAbsolute, join, normalize, relative } from "node:path";
+import { dirname, isAbsolute, join, normalize, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const fixturesDir = fileURLToPath(new URL(".", import.meta.url));
-const pluginSourceFile = fileURLToPath(new URL("../../vite-plugin/src/index.ts", import.meta.url));
+// Resolve against the built declaration files (the published type surface),
+// mirroring how the plugin's types are consumed by end users. Built by the
+// integration test setup step before this suite runs.
+const pluginSourceFile = fileURLToPath(
+  new URL("../../../packages/bundler-plugins/dist/types/vite/index.d.ts", import.meta.url)
+);
 const pluginViteTypesFixtureDir = join(fixturesDir, "vite6");
 
 const configSource = `
 import { defineConfig } from "vite";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { sentryVitePlugin } from "@sentry/bundler-plugins/vite";
 
 export default defineConfig({
   plugins: [sentryVitePlugin()],
@@ -61,11 +66,27 @@ function getDiagnosticsForFixture(fixtureName: string, expectedMajor: string): s
       : getSourceFile(path, languageVersion, onError, shouldCreateNewSourceFile);
   host.resolveModuleNames = (moduleNames, containingFile) =>
     moduleNames.map((moduleName) => {
-      if (moduleName === "@sentry/vite-plugin") {
+      if (moduleName === "@sentry/bundler-plugins/vite") {
         return {
           resolvedFileName: pluginSourceFile,
-          extension: ts.Extension.Ts,
+          extension: ts.Extension.Dts,
         };
+      }
+
+      // The consolidated plugin's declaration files use relative directory
+      // imports (e.g. `../rollup`, `../core`). Node16 module resolution does not
+      // support directory-index resolution for relative specifiers, so resolve
+      // those against the built type tree ourselves with an `/index.d.ts` fallback.
+      if (moduleName.startsWith(".")) {
+        const base = join(dirname(containingFile), moduleName);
+        const candidates = [base, `${base}.d.ts`, join(base, "index.d.ts")];
+        const resolvedFileName = candidates.find(candidate => ts.sys.fileExists(candidate));
+        if (resolvedFileName) {
+          return {
+            resolvedFileName,
+            extension: ts.Extension.Dts,
+          };
+        }
       }
 
       const resolutionContainingFile =

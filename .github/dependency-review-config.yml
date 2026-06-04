@@ -11,3 +11,13 @@ allow-ghsas:
   - GHSA-gp8f-8m3g-qvj9
   # devalue vulnerability - this is just used by nuxt & astro as transitive dependency
   - GHSA-vj54-72f3-p5jv
+  # The bundler-plugin integration test fixtures deliberately pin multiple Vite
+  # major versions (4/6/7/8) to test the plugin against each. These are dev-only
+  # test fixtures that run `vite build` (never the dev server) and are never
+  # shipped, so the following Vite dev-server / transitive advisories do not apply:
+  # launch-editor command injection (via Vite 4 fixture)
+  - GHSA-c27g-q93r-2cwf
+  # Vite arbitrary file read via dev server WebSocket (Vite 6/7/8 fixtures)
+  - GHSA-p9ff-h696-f583
+  # Vite `server.fs.deny` bypassed with queries (Vite 7/8 fixtures)
+  - GHSA-v2wj-q39q-566r
